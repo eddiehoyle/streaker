@@ -1,0 +1,10 @@
+# CLion
+.idea/
+cmake-build-debug
+build
+
+# Python
+*.pyc
+
+# Rust
+target/

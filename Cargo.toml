@@ -1,0 +1,2 @@
+[workspace]
+members = ["streaker-rs", "streaker-py"]
