@@ -8,7 +8,7 @@ const PATTERN_RANGE : &str = r"^(?P<start>\d+)-(?P<stop>\d+)$";
 const PATTERN_FULL : &str = r"^(?P<start>\d+)-(?P<stop>\d+)(?P<body>[xy])(?P<step>\d+)$";
 
 #[derive(Debug, PartialEq)]
-enum Body {
+pub enum Body {
     Fill,
     Inverse,
 }
@@ -24,18 +24,16 @@ pub struct PatternRange {
 impl PatternRange {
 
     /// Expects '#1-10' pattern
-    fn from_pattern(pattern: &String) -> Result<PatternRange, String> {
-        let mut range = pattern.clone();
-        strip_padding(&mut range);
+    pub fn from_pattern(pattern: &String) -> Result<PatternRange, String> {
         let re = |s| { Regex::new(s).unwrap() };
-        if let Some(cap) = re(PATTERN_FRAME).captures(range.as_str() ) {
+        if let Some(cap) = re(PATTERN_FRAME).captures(pattern.as_str() ) {
             let frame = cap.name("frame").unwrap().as_str().parse::<u32>().unwrap();
             return Ok(PatternRange { start: frame, stop: frame, step: 1, body: Body::Fill });
-        } else if let Some(cap) = re(PATTERN_RANGE).captures(range.as_str() ) {
+        } else if let Some(cap) = re(PATTERN_RANGE).captures(pattern.as_str() ) {
             let start = cap.name("start").unwrap().as_str().parse::<u32>().unwrap();
             let stop = cap.name("stop").unwrap().as_str().parse::<u32>().unwrap();
             return Ok(PatternRange{ start: start, stop: stop, step: 1, body: Body::Fill});
-        } else if let Some(cap) = re(PATTERN_FULL).captures(range.as_str() ) {
+        } else if let Some(cap) = re(PATTERN_FULL).captures(pattern.as_str() ) {
             let start = cap.name("start").unwrap().as_str().parse::<u32>().unwrap();
             let stop = cap.name("stop").unwrap().as_str().parse::<u32>().unwrap();
             let body = match cap.name("body").unwrap().as_str() {
@@ -49,33 +47,26 @@ impl PatternRange {
         Err(format!("Not a valid pattern."))
     }
 
-    fn new(start: u32, stop: u32, skip: u32, surface: Body) -> Result<PatternRange, String> {
+    pub fn new(start: u32, stop: u32, skip: u32, surface: Body) -> Result<PatternRange, String> {
         if start <= stop {
             return Ok(PatternRange { start, stop, step: skip, body: surface })
         }
         Err(format!("Cannot construct with negative frame range! Got: {}, {}.", start, stop))
     }
 
-    fn start(&self) -> &u32 {
-        &self.start
-    }
+    pub fn start(&self) -> &u32 { &self.start }
 
-    fn stop(&self) -> &u32 {
+    pub fn stop(&self) -> &u32 {
         &self.stop
     }
 
-    fn body(&self) -> &Body {
+    pub fn body(&self) -> &Body {
         &self.body
     }
 
-    fn step(&self) -> &u32 {
+    pub fn step(&self) -> &u32 {
         &self.step
     }
-}
-
-/// Strip '@' and '#' characters
-fn strip_padding(pattern: &mut String){
-    pattern.retain(|c| { c != '#' && c != '@' });
 }
 
 #[cfg(test)]
@@ -155,39 +146,5 @@ mod tests {
         assert_eq!(*pattern.body(), Body::Fill);
         let pattern = PatternRange::new(1, 10, 2, Body::Inverse).unwrap();
         assert_eq!(*pattern.body(), Body::Inverse);
-    }
-
-    #[test]
-    fn test_strip_padding() {
-        let mut stripped = String::from("#");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("@");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("##");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("@@");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("#@");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("@#");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "");
-        let mut stripped = String::from("asd");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "asd");
-        let mut stripped = String::from("#1-2");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "1-2");
-        let mut stripped = String::from("#1,3,7");
-        strip_padding(&mut stripped);
-        assert_eq!(stripped, "1,3,7");
     }
 }

@@ -2,6 +2,7 @@ extern crate regex;
 
 //mod range;
 mod pattern;
+mod streak;
 
 //
 //pub fn get_padding(num: &str) -> Result<u32, &str> {
