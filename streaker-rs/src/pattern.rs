@@ -1,59 +1,75 @@
 #![allow(unused_imports)]
 
-//let re = Regex::new().unwrap();
-const PATTERN_RANGE : &str = r"^\d+-\d+$";
-
 use std::fmt;
 use regex::Regex;
 
-//type ParseResult<'a, T> = Result<T, &'a str>;
+const PATTERN_FRAME : &str = r"^(?P<frame>\d+)$";
+const PATTERN_RANGE : &str = r"^(?P<start>\d+)-(?P<stop>\d+)$";
+const PATTERN_FULL : &str = r"^(?P<start>\d+)-(?P<stop>\d+)(?P<body>[xy])(?P<step>\d+)$";
 
 #[derive(Debug, PartialEq)]
-enum Surface {
+enum Body {
     Fill,
     Inverse,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct PatternRange {
-    begin: u32,
-    end: u32,
-    skip: u32,
-    surface: Surface,
+    start: u32,
+    stop: u32,
+    step: u32,
+    body: Body,
 }
 
 impl PatternRange {
 
     /// Expects '#1-10' pattern
     fn from_pattern(pattern: &String) -> Result<PatternRange, String> {
-        let mut stripped = pattern.clone();
-        strip_padding(&mut stripped);
-        if let Some((begin, end)) = parse_pattern(&stripped) {
-            return PatternRange::new(begin, end, 1, Surface::Fill );
+        let mut range = pattern.clone();
+        strip_padding(&mut range);
+        let re = |s| { Regex::new(s).unwrap() };
+        if let Some(cap) = re(PATTERN_FRAME).captures(range.as_str() ) {
+            let frame = cap.name("frame").unwrap().as_str().parse::<u32>().unwrap();
+            return Ok(PatternRange { start: frame, stop: frame, step: 1, body: Body::Fill });
+        } else if let Some(cap) = re(PATTERN_RANGE).captures(range.as_str() ) {
+            let start = cap.name("start").unwrap().as_str().parse::<u32>().unwrap();
+            let stop = cap.name("stop").unwrap().as_str().parse::<u32>().unwrap();
+            return Ok(PatternRange{ start: start, stop: stop, step: 1, body: Body::Fill});
+        } else if let Some(cap) = re(PATTERN_FULL).captures(range.as_str() ) {
+            let start = cap.name("start").unwrap().as_str().parse::<u32>().unwrap();
+            let stop = cap.name("stop").unwrap().as_str().parse::<u32>().unwrap();
+            let body = match cap.name("body").unwrap().as_str() {
+                "x" => Body::Fill,
+                "y" => Body::Inverse,
+                _ => Body::Fill,
+            };
+            let step = cap.name("step").unwrap().as_str().parse::<u32>().unwrap();
+            return Ok(PatternRange{ start: start, stop: stop, step, body});
         }
-        Err(format!("Unrecognised pattern: {}", pattern))
+        Err(format!("Not a valid pattern."))
     }
 
-    fn new(begin: u32, end: u32, skip: u32, surface: Surface) -> Result<PatternRange, String> {
-        if begin <= end {
-            return Ok(PatternRange {begin, end, skip, surface })
+    fn new(start: u32, stop: u32, skip: u32, surface: Body) -> Result<PatternRange, String> {
+        if start <= stop {
+            return Ok(PatternRange { start, stop, step: skip, body: surface })
         }
-        Err(format!("Cannot construct with negative frame range! Got: {}, {}.", begin, end))
+        Err(format!("Cannot construct with negative frame range! Got: {}, {}.", start, stop))
     }
 
-    fn get_skip(&self) -> &u32 {
-        &self.skip
+    fn start(&self) -> &u32 {
+        &self.start
     }
 
-    fn get_begin(&self) -> &u32 {
-        &self.begin
+    fn stop(&self) -> &u32 {
+        &self.stop
     }
 
-    fn get_end(&self) -> &u32 {
-        &self.end
+    fn body(&self) -> &Body {
+        &self.body
     }
 
-    fn get_surface(&self) -> &Surface {
-        &self.surface
+    fn step(&self) -> &u32 {
+        &self.step
     }
 }
 
@@ -62,113 +78,83 @@ fn strip_padding(pattern: &mut String){
     pattern.retain(|c| { c != '#' && c != '@' });
 }
 
-/// Splits pattern on ',' and returns list of slices
-/// that start with numbers
-fn split_ranges(pattern: &String) -> Vec<String> {
-    pattern.split(",")
-        .filter(|piece| { char::is_numeric(piece.chars().next().unwrap()) })
-        .map(|piece| {String::from(piece)})
-        .collect()
-}
-
-/// Read pattern and extract padding
-fn parse_padding(pattern: &str) -> u32 {
-    pattern.chars().into_iter()
-        .map(|chr| {
-            match chr {
-                '#' => 4,
-                '@' => 1,
-                _ => 0,
-            }
-        }).sum()
-}
-
-fn parse_pattern(pattern: &String) -> Option<(u32, u32)> {
-    let re = Regex::new(PATTERN_RANGE).unwrap();
-    if let Some(mat) = re.find(pattern) {
-        let mat = String::from(mat.as_str());
-        let pieces : Vec<&str> = mat.split('-').collect();
-        let a = pieces[0].parse::<u32>().unwrap();
-        let b = pieces[1].parse::<u32>().unwrap();
-        return Some((a, b));
-    }
-    None
-}
-
+#[cfg(test)]
 mod tests {
 
     use super::*;
 
     #[test]
-    fn test_patternrange_new() {
-        assert!(PatternRange::new(1, 10, 1, Surface::Fill ).is_ok());
-        assert!(PatternRange::new(5, 1, 1, Surface::Fill ).is_err());
-        assert!(PatternRange::new(3, 3, 1, Surface::Fill ).is_ok());
-    }
-    #[test]
-    fn test_patternrange_from_pattern() {
-        assert!(PatternRange::from_pattern(&String::from("#1-4")).is_ok());
-        assert!(PatternRange::from_pattern(&String::from("@1-4")).is_ok());
-        assert!(PatternRange::from_pattern(&String::from("1-4")).is_ok());
-        assert!(PatternRange::from_pattern(&String::from("-1-4")).is_err());
+    fn test_patternrange_from_pattern_frame() {
+        let range = PatternRange::from_pattern(&String::from("1"));
+        assert!(range.is_ok());
+        let range = range.unwrap();
+        assert_eq!(range.start, 1);
+        assert_eq!(range.stop, 1);
+        assert_eq!(range.body, Body::Fill);
+        assert_eq!(range.step, 1);
     }
 
     #[test]
+    fn test_patternrange_from_pattern_range() {
+        let range = PatternRange::from_pattern(&String::from("1-10"));
+        assert!(range.is_ok());
+        let range = range.unwrap();
+        assert_eq!(range.start, 1);
+        assert_eq!(range.stop, 10);
+        assert_eq!(range.body, Body::Fill);
+        assert_eq!(range.step, 1);
+    }
+
+    #[test]
+    fn test_patternrange_from_pattern_full() {
+        let range = PatternRange::from_pattern(&String::from("1-10x2"));
+        assert!(range.is_ok());
+        let range = range.unwrap();
+        assert_eq!(range.start, 1);
+        assert_eq!(range.stop, 10);
+        assert_eq!(range.body, Body::Fill);
+        assert_eq!(range.step, 2);
+
+        let range = PatternRange::from_pattern(&String::from("5-15y3"));
+        assert!(range.is_ok());
+        let range = range.unwrap();
+        assert_eq!(range.start, 5);
+        assert_eq!(range.stop, 15);
+        assert_eq!(range.body, Body::Inverse);
+        assert_eq!(range.step, 3);
+    }
+
+    #[test]
+    fn test_patternrange_new() {
+        assert!(PatternRange::new(1, 5, 1, Body::Fill ).is_ok());
+        assert!(PatternRange::new(3, 3, 1, Body::Fill ).is_ok());
+        assert!(PatternRange::new(5, 1, 1, Body::Fill ).is_err());
+    }
+
     #[test]
     fn test_patternrange_get_begin() {
-        let range = PatternRange::new(1, 10, 1, Surface::Fill ).unwrap();
-        assert_eq!(*range.get_begin(), 1);
+        let range = PatternRange::new(1, 10, 1, Body::Fill ).unwrap();
+        assert_eq!(*range.start(), 1);
     }
 
     #[test]
     fn test_patternrange_get_end() {
-        let range = PatternRange::new(1, 10, 1, Surface::Fill ).unwrap();
-        assert_eq!(*range.get_end(), 10);
+        let range = PatternRange::new(1, 10, 1, Body::Fill ).unwrap();
+        assert_eq!(*range.stop(), 10);
     }
 
     #[test]
     fn test_patternrange_get_skip() {
-        let pattern = PatternRange::new(1, 10, 2, Surface::Fill).unwrap();
-        assert_eq!(*pattern.get_skip(), 2);
+        let pattern = PatternRange::new(1, 10, 2, Body::Fill).unwrap();
+        assert_eq!(pattern.step(), &2);
     }
 
     #[test]
-    fn test_patternrange_get_surface() {
-        let pattern = PatternRange::new(1, 10, 2, Surface::Fill).unwrap();
-        assert_eq!(*pattern.get_surface(), Surface::Fill);
-        let pattern = PatternRange::new(1, 10, 2, Surface::Inverse).unwrap();
-        assert_eq!(*pattern.get_surface(), Surface::Inverse);
-    }
-
-    #[test]
-    fn test_parse_padding() {
-        assert_eq!(parse_padding(&String::from("#")), 4);
-        assert_eq!(parse_padding(&String::from("@")), 1);
-        assert_eq!(parse_padding(&String::from("##")), 8);
-        assert_eq!(parse_padding(&String::from("@@")), 2);
-        assert_eq!(parse_padding(&String::from("#@")), 5);
-        assert_eq!(parse_padding(&String::from("@#")), 5);
-        assert_eq!(parse_padding(&String::from("")), 0);
-        assert_eq!(parse_padding(&String::from("jskdf")), 0);
-    }
-
-    #[test]
-    fn test_parse_ranges() {
-        assert_eq!(split_ranges(&String::from("1-5,7")), ["1-5", "7"]);
-        assert_eq!(split_ranges(&String::from("1,4")), ["1", "4"]);
-        assert_eq!(split_ranges(&String::from("a1,b4")), Vec::<String>::new());
-    }
-
-    #[test]
-    fn test_parse_pattern() {
-        assert_eq!(parse_pattern(&String::from("1-10")), Some((1, 10)));
-        assert_eq!(parse_pattern(&String::from("1-1")), Some((1, 1)));
-        assert_eq!(parse_pattern(&String::from("01-004")), Some((1, 4)));
-        assert_eq!(parse_pattern(&String::from("-0-0")), None);
-        assert_eq!(parse_pattern(&String::from("-1--4")), None);
-        assert_eq!(parse_pattern(&String::from("1-")), None);
-        assert_eq!(parse_pattern(&String::from("3-asd")), None);
-        assert_eq!(parse_pattern(&String::from("3-asd")), None);
+    fn test_patternrange_get_body() {
+        let pattern = PatternRange::new(1, 10, 2, Body::Fill).unwrap();
+        assert_eq!(*pattern.body(), Body::Fill);
+        let pattern = PatternRange::new(1, 10, 2, Body::Inverse).unwrap();
+        assert_eq!(*pattern.body(), Body::Inverse);
     }
 
     #[test]

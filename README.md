@@ -13,10 +13,10 @@
   @     Padding 1
   
   /// Ranges read up till last frame
-  1-n   Range
-  1,4,6 Non-contiguous frames
-  1-5x2 Skip frame 1,3
-  1-5y3 Fill-in frame 1,2,4
+  1-n   Range                 [1,2,3,...,n]
+  1,4,6 Non-contiguous frames [1,4,6]
+  1-8x2 Skip frame            [1,3,5,7] 
+  1-9y3 Fill-in frame         [1,2,4,5,7,8] 
   ```
   
 * FrameSet: Has compiled frames from `pattern`  
