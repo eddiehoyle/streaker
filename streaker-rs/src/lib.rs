@@ -1,7 +1,9 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 extern crate regex;
 
-//mod range;
-mod pattern;
+mod range;
 mod streak;
 
 //
