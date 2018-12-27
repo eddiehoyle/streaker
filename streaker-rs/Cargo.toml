@@ -6,3 +6,11 @@ authors = ["Eddie <eddiepie@gmail.com>"]
 [dependencies]
 clap = "~2.32"
 regex = "1"
+
+[lib]
+name = "streaker"
+path = "src/lib.rs"
+
+[[bin]]
+name = "streaker"
+path = "src/main.rs"
