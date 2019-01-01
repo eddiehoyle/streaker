@@ -88,7 +88,7 @@ fn consume(range: &Range) -> BTreeSet<u32> {
     return frames;
 }
 
-#[derive(Eq)]
+#[derive(Eq, Debug)]
 pub struct Streak {
     name: String,
     ext: String,
@@ -137,8 +137,8 @@ impl Streak {
         return &self.frames;
     }
 
-    pub fn frames_mut(&mut self) -> &BTreeSet<u32> {
-        return &self.frames;
+    pub fn frames_mut(&mut self) -> &mut BTreeSet<u32> {
+        return &mut self.frames;
     }
 
     pub fn name(&self) -> &String {

@@ -1,3 +1,32 @@
+//#![allow(dead_code)]
+//#![allow(unused_variables)]
+//#![allow(unused_imports)]
+//
+//use std::collections::BTreeSet;
+//
+//struct Container {
+//    numbers: BTreeSet<i32>,
+//}
+//
+//impl Container {
+//    fn new() -> Self {
+//        Container{numbers: BTreeSet::new()}
+//    }
+//    fn get(&mut self) -> &mut BTreeSet<i32> {
+//        &mut self.numbers
+//    }
+//}
+//
+//fn main() {
+//    let mut con = Container::new();
+////    con.get().insert(10);
+//    let mut nums = con.get();
+//    nums.insert(10);
+//
+//}
+
+// ------------------------------------------------------------------------------------------
+
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -13,6 +42,7 @@ use std::path::{Path};
 use std::fs;
 use std::collections::{HashMap, BTreeSet};
 use streaker::streak::{Streak};
+use std::borrow::BorrowMut;
 
 fn main() {
 
@@ -41,8 +71,9 @@ fn main() {
 }
 
 fn seek_directory(path: &Path) {
-//    let mut map : HashMap<String, BTreeSet<u32>> = HashMap::new();
-    let mut streaks : BTreeSet<Streak> = BTreeSet::new();
+
+    let mut streaks : Vec<Streak> = Vec::new();
+
     if let Ok(files) = fs::read_dir(path) {
         for file in files {
             let file = file.unwrap();
@@ -54,42 +85,30 @@ fn seek_directory(path: &Path) {
                 let ext = cap.name("ext").unwrap().as_str();
                 let padding = frame.len();
 
-                for streak in &streaks {
-
+                let mut found = false;
+                for streak in &mut streaks {
+                    if streak.name() == name && streak.ext() == ext && streak.padding() <= padding as u32 {
+                        streak.frames_mut().insert(frame.parse::<u32>().unwrap());
+                        found = true;
+                    }
                 }
-//                let mut found = false;
-//                for mut streak in &streaks {
-//                    if streak.name() == name &&
-//                        streak.ext() == ext &&
-//                        streak.padding() <= padding as u32 {
-//                        let mut frames = streak.frames_mut();
-////                        frames.insert(frame.parse::<u32>().unwrap());
-//                        found = true;
-//                    }
-//                }
 
-                let found = false;
                 if !found {
                     let mut frames = BTreeSet::new();
                     frames.insert(frame.parse::<u32>().unwrap());
-                    streaks.insert(Streak::new(String::from(name),
-                                               String::from(ext),
-                                               padding as u32,
-                                               frames));
+                    streaks.push(Streak::new(String::from(name),
+                                             String::from(ext),
+                                             padding as u32,
+                                             frames));
                 }
-
-//                // Only match on name
-//                if !map.contains_key(&name.to_string()) {
-//                    map.insert( name.to_string(), BTreeSet::new());
-//                }
-//                map.get_mut(&name.to_string())
-//                    .unwrap()
-//                    .insert( frame.parse::<u32>().unwrap());
             }
         }
     }
 
     println!("Streaks: {}", streaks.len());
+    for streak in &streaks {
+        println!("{:?}", streak);
+    }
 
 //    for iter in map.iter() {
 //        let (key, value) = &iter;
