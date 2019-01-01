@@ -6,6 +6,7 @@ authors = ["Eddie <eddiepie@gmail.com>"]
 [dependencies]
 clap = "~2.32"
 regex = "1"
+indexmap = "1.0.2"
 
 [lib]
 name = "streaker"

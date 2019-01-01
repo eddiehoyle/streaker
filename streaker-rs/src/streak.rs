@@ -1,7 +1,9 @@
 use range::{Range, Body};
-use std::collections::BTreeSet;
+//use std::collections::IndexSet;
+use indexmap::IndexSet;
 use std::iter::FromIterator;
 use std::cmp::Ordering;
+use std::fmt::Display;
 
 /// Minimum amount of frames needed to be matched with a pattern.
 const MIN_PATTERN_THRESHOLD : usize = 3;
@@ -41,7 +43,7 @@ enum PatternRules {
     Inverse,
 }
 
-fn to_pattern(frames: &BTreeSet<u32>) -> String {
+fn to_pattern(frames: &IndexSet<u32>) -> String {
 
     let mut head_iter = frames.iter();
     let mut tail_iter = frames.iter();
@@ -60,8 +62,8 @@ fn to_pattern(frames: &BTreeSet<u32>) -> String {
 }
 
 /// Convert Range object to set of frames.
-fn consume(range: &Range) -> BTreeSet<u32> {
-    let mut frames = BTreeSet::new();
+fn consume(range: &Range) -> IndexSet<u32> {
+    let mut frames = IndexSet::new();
     if range.distance() == 0 {
         frames.insert(*range.start());
     } else {
@@ -93,11 +95,11 @@ pub struct Streak {
     name: String,
     ext: String,
     padding: u32,
-    frames: BTreeSet<u32>,
+    frames: IndexSet<u32>,
 }
 
 impl Streak {
-    pub fn new(name: String, ext: String, padding: u32, frames: BTreeSet<u32> ) -> Self {
+    pub fn new(name: String, ext: String, padding: u32, frames: IndexSet<u32> ) -> Self {
         Streak{ name, ext, padding, frames }
     }
 
@@ -118,11 +120,25 @@ impl Streak {
         return Err(format!("Malformed pattern: {}", pattern));
     }
 
-    pub fn from_frames(frames: BTreeSet<u32>, padding: u32) -> Self {
+    pub fn from_frames(frames: IndexSet<u32>, padding: u32) -> Self {
         Streak::new(String::from(""),
                     String::from(""),
                     padding,
                     frames)
+    }
+
+    pub fn is_match(&self, name: &String, ext: &String, padding: u32) -> bool {
+        return self.name() == name &&
+            self.ext() == ext &&
+            self.padding() <= padding;
+    }
+
+    pub fn pattern(&self) -> String {
+        let mut _padding = String::new();
+        _padding.push_str((0..self.padding() / 4).map(|_| "#").collect::<String>().as_str());
+        _padding.push_str((0..self.padding() % 4).map(|_| "@").collect::<String>().as_str());
+//        return format!("{}{}-{}", _padding,
+        String::new()
     }
 
     pub fn set_padding(&mut self, padding: u32) {
@@ -133,11 +149,11 @@ impl Streak {
         return self.padding;
     }
 
-    pub fn frames(&self) -> &BTreeSet<u32> {
+    pub fn frames(&self) -> &IndexSet<u32> {
         return &self.frames;
     }
 
-    pub fn frames_mut(&mut self) -> &mut BTreeSet<u32> {
+    pub fn frames_mut(&mut self) -> &mut IndexSet<u32> {
         return &mut self.frames;
     }
 
@@ -170,6 +186,12 @@ impl PartialEq for Streak {
     }
 }
 
+impl Display for Streak {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.name(), self.pattern(), self.ext())
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -178,56 +200,56 @@ mod tests {
     #[test]
     fn test_consume_fill_ones() {
         let range = Range::new(1, 10, 1, Body::Fill).unwrap();
-        let frames = BTreeSet::from_iter(vec![1, 2, 3, 4, 5, 6, 7, 8, 9].iter().cloned());
+        let frames : IndexSet<u32> = indexset!{1,2,3,4,5,6,7,8,9};
         assert_eq!(consume(&range), frames);
     }
 
     #[test]
     fn test_consume_fill_skip() {
         let range = Range::new(1, 10, 3, Body::Fill).unwrap();
-        let frames = BTreeSet::from_iter(vec![1, 4, 7].iter().cloned());
+        let frames : IndexSet<u32> = indexset!{1,4,7};
         assert_eq!(consume(&range), frames);
     }
 
     #[test]
     fn test_consume_inverse_skip() {
         let range = Range::new(1, 10, 3, Body::Inverse).unwrap();
-        let frames = BTreeSet::from_iter(vec![2,3,5,6,8,9].iter().cloned());
+        let frames : IndexSet<u32> = indexset!{2,3,5,6,8,9};
         assert_eq!(consume(&range), frames);
     }
 
     #[test]
     fn test_streak_from_pattern_one() {
         let streak = Streak::from_pattern(&String::from("#3")).unwrap();
-        let frames : Vec<u32> = vec!(3);
-        assert_eq!(streak.frames(), &BTreeSet::from_iter(frames.iter().cloned()));
+        let frames : IndexSet<u32> = indexset!{3};
+        assert_eq!(streak.frames(), &frames);
         assert_eq!(streak.padding(), 4);
 
         let streak = Streak::from_pattern(&String::from("@3")).unwrap();
-        let frames : Vec<u32> = vec!(3);
-        assert_eq!(streak.frames(), &BTreeSet::from_iter(frames.iter().cloned()));
+        let frames : IndexSet<u32> = indexset!{3};
+        assert_eq!(streak.frames(), &frames);
         assert_eq!(streak.padding(), 1);
     }
 
     #[test]
     fn test_streak_from_pattern_range() {
         let streak = Streak::from_pattern(&String::from("#1-10")).unwrap();
-        let frames : Vec<u32> = (1..10).collect();
-        assert_eq!(streak.frames(), &BTreeSet::from_iter(frames.iter().cloned()));
+        let frames : IndexSet<u32> = indexset!{1,2,3,4,5,6,7,8,9};
+        assert_eq!(streak.frames(), &frames);
         assert_eq!(streak.padding(), 4);
 
         let streak = Streak::from_pattern(&String::from("@1-10")).unwrap();
-        let frames : Vec<u32> = (1..10).collect();
-        assert_eq!(streak.frames(), &BTreeSet::from_iter(frames.iter().cloned()));
+        let frames : IndexSet<u32> = indexset!{1,2,3,4,5,6,7,8,9};
+        assert_eq!(streak.frames(), &frames);
         assert_eq!(streak.padding(), 1);
     }
 
     #[test]
     fn test_streak_from_frames() {
-        let frames : Vec<u32> = (1..10).collect();
+        let frames : IndexSet<u32> = indexset!{1,2,3,4,5,6,7,8,9};
         let padding : u32 = 4;
-        let streak = Streak::from_frames(BTreeSet::from_iter(frames.iter().cloned()), padding);
-        assert_eq!(streak.frames(), &BTreeSet::from_iter(frames.iter().cloned()));
+        let streak = Streak::from_frames(IndexSet::from_iter(frames.iter().cloned()), padding);
+        assert_eq!(streak.frames(), &frames);
         assert_eq!(streak.padding(), 4);
     }
 
@@ -268,6 +290,6 @@ mod tests {
     #[test]
     fn test_to_pattern() {
         let frames : Vec<u32> = (1..10).collect();
-        assert_eq!(to_pattern( &BTreeSet::from_iter(frames.iter().cloned())), String::new());
+        assert_eq!(to_pattern( &IndexSet::from_iter(frames.iter().cloned())), String::new());
     }
 }

@@ -34,17 +34,18 @@
 extern crate streaker;
 extern crate clap;
 extern crate regex;
+extern crate indexmap;
 
 use clap::{App, Arg};
 use std::env;
 use regex::Regex;
 use std::path::{Path};
 use std::fs;
-use std::collections::{HashMap, BTreeSet};
 use streaker::streak::{Streak};
-use std::borrow::BorrowMut;
+use indexmap::IndexSet;
 
 fn main() {
+
 
     let matches = App::new("Streaker")
         .version("1.0")
@@ -87,14 +88,16 @@ fn seek_directory(path: &Path) {
 
                 let mut found = false;
                 for streak in &mut streaks {
-                    if streak.name() == name && streak.ext() == ext && streak.padding() <= padding as u32 {
+                    if streak.is_match(&String::from(name),
+                                       &String::from(ext),
+                                       padding as u32) {
                         streak.frames_mut().insert(frame.parse::<u32>().unwrap());
                         found = true;
                     }
                 }
 
                 if !found {
-                    let mut frames = BTreeSet::new();
+                    let mut frames = IndexSet::new();
                     frames.insert(frame.parse::<u32>().unwrap());
                     streaks.push(Streak::new(String::from(name),
                                              String::from(ext),

@@ -4,6 +4,10 @@
 
 extern crate regex;
 
+#[macro_use]
+extern crate indexmap;
+
+
 use std::fs;
 use std::path::Path;
 
