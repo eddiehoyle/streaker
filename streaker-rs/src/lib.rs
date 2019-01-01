@@ -7,8 +7,8 @@ extern crate regex;
 use std::fs;
 use std::path::Path;
 
-mod range;
-mod streak;
+pub mod range;
+pub mod streak;
 
 // 1. list files in directory
 //

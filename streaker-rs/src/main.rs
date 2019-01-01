@@ -6,15 +6,13 @@ extern crate streaker;
 extern crate clap;
 extern crate regex;
 
-//mod range;
-//mod streak;
-
 use clap::{App, Arg};
 use std::env;
 use regex::Regex;
 use std::path::{Path};
 use std::fs;
-
+use std::collections::{HashMap, BTreeSet};
+use streaker::streak::{Streak};
 
 fn main() {
 
@@ -35,7 +33,7 @@ fn main() {
             .join(dir);
         if let Ok(full_directory_path) = fs::canonicalize(path) {
             if full_directory_path.is_dir() {
-                print!("Scanning directory: {}", full_directory_path.to_str().unwrap());
+                println!("Scanning directory: {}", full_directory_path.to_str().unwrap());
                 seek_directory(full_directory_path.as_path());
             }
         };
@@ -43,53 +41,70 @@ fn main() {
 }
 
 fn seek_directory(path: &Path) {
-    println!("Querying: {}", path.to_str().unwrap());
+//    let mut map : HashMap<String, BTreeSet<u32>> = HashMap::new();
+    let mut streaks : BTreeSet<Streak> = BTreeSet::new();
     if let Ok(files) = fs::read_dir(path) {
         for file in files {
             let file = file.unwrap();
-            let re = Regex::new(r"^(?P<name>\d+).(?P<frame>\d+).(?P<ext>\d+)$").unwrap();
+            let re = Regex::new(r"^(?P<name>\w+).(?P<frame>\d+).(?P<ext>\w+)$").unwrap();
             if let Some(cap) = re.captures(file.file_name().to_str().unwrap()) {
-                let name = cap.name("name").unwrap();
-                let frame = cap.name("frame").unwrap();
-                let ext = cap.name("ext").unwrap();
-                print!("{} {} {}", name, frame, ext);
+
+                let name = cap.name("name").unwrap().as_str();
+                let frame = cap.name("frame").unwrap().as_str();
+                let ext = cap.name("ext").unwrap().as_str();
+                let padding = frame.len();
+
+                for streak in &streaks {
+
+                }
+//                let mut found = false;
+//                for mut streak in &streaks {
+//                    if streak.name() == name &&
+//                        streak.ext() == ext &&
+//                        streak.padding() <= padding as u32 {
+//                        let mut frames = streak.frames_mut();
+////                        frames.insert(frame.parse::<u32>().unwrap());
+//                        found = true;
+//                    }
+//                }
+
+                let found = false;
+                if !found {
+                    let mut frames = BTreeSet::new();
+                    frames.insert(frame.parse::<u32>().unwrap());
+                    streaks.insert(Streak::new(String::from(name),
+                                               String::from(ext),
+                                               padding as u32,
+                                               frames));
+                }
+
+//                // Only match on name
+//                if !map.contains_key(&name.to_string()) {
+//                    map.insert( name.to_string(), BTreeSet::new());
+//                }
+//                map.get_mut(&name.to_string())
+//                    .unwrap()
+//                    .insert( frame.parse::<u32>().unwrap());
             }
-//            let re = Regex::new(r"(\d+)").unwrap();
-//            print!("{}", file.file_name().to_str().unwrap());
-//            for mat in re.find_iter(file.file_name().to_str().unwrap()) {
-//                print!(", {}", mat.as_str());
-//            }
-//            print!("\n");
         }
     }
+
+    println!("Streaks: {}", streaks.len());
+
+//    for iter in map.iter() {
+//        let (key, value) = &iter;
+//    }
 }
 
-////
-////fn seek(path: &path::Path) -> Streak {
-////
-////    let mut padding = 1;
-////    let mut frames : Vec<u32> = Vec::new();
-////    let pattern = String::new();
-////    if let Ok(files) = fs::read_dir(path) {
-////        let files: Vec<_> = files.collect();
-////        for entry in files {
-////            if let Ok(file) = entry {
-////                let filename = &file.file_name();
-////                let split = filename.to_str().unwrap();
-////                let tokens : Vec<_> = split.split(".").collect();
-////                let number = tokens.get(1).unwrap();
-////                if let Ok(pad) = get_padding(number) {
-////                    frames.push(number.parse::<u32>().unwrap());
-////                    if pad > padding {
-////                        padding = pad;
-////                    }
-////                }
-////                let pattern = Pattern::new(String::from(*tokens.get(0).unwrap()),
-////                                           String::from(*tokens.get(2).unwrap()));
-////                return Streak::new(pattern, range::Range::new(frames), padding);
-////            }
-////        }
-////    }
-////    Streak::new(Pattern::new(String::from("not"),String::from("found")),
-////                range::Range::new(frames), padding)
-////}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_seek_directory() {
+
+    }
+
+}
