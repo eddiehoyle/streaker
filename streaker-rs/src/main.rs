@@ -110,7 +110,7 @@ fn seek_directory(path: &Path) {
 
     println!("Streaks: {}", streaks.len());
     for streak in &streaks {
-        println!("{:?}", streak);
+        println!("{}", streak);
     }
 
 //    for iter in map.iter() {
