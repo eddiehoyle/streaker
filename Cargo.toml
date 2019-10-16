@@ -1,2 +1,6 @@
 [workspace]
-members = ["streaker-rs", "streaker-py"]
+
+members = [
+    "streaker",
+    "streaker-cli",
+]

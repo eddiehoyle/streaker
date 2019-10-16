@@ -1,32 +1,3 @@
-//#![allow(dead_code)]
-//#![allow(unused_variables)]
-//#![allow(unused_imports)]
-//
-//use std::collections::BTreeSet;
-//
-//struct Container {
-//    numbers: BTreeSet<i32>,
-//}
-//
-//impl Container {
-//    fn new() -> Self {
-//        Container{numbers: BTreeSet::new()}
-//    }
-//    fn get(&mut self) -> &mut BTreeSet<i32> {
-//        &mut self.numbers
-//    }
-//}
-//
-//fn main() {
-//    let mut con = Container::new();
-////    con.get().insert(10);
-//    let mut nums = con.get();
-//    nums.insert(10);
-//
-//}
-
-// ------------------------------------------------------------------------------------------
-
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -36,11 +7,11 @@ extern crate clap;
 extern crate regex;
 extern crate indexmap;
 
-use clap::{App, Arg};
 use std::env;
-use regex::Regex;
 use std::path::{Path};
 use std::fs;
+use regex::Regex;
+use clap::{App, Arg};
 use streaker::streak::{Streak};
 use indexmap::IndexSet;
 
@@ -76,10 +47,9 @@ fn seek_directory(path: &Path) {
     let mut streaks : Vec<Streak> = Vec::new();
 
     if let Ok(files) = fs::read_dir(path) {
+        let re = Regex::new(r"^(?P<name>\w+).(?P<frame>\d+).(?P<ext>\w+)$").unwrap();
         for file in files {
-            let file = file.unwrap();
-            let re = Regex::new(r"^(?P<name>\w+).(?P<frame>\d+).(?P<ext>\w+)$").unwrap();
-            if let Some(cap) = re.captures(file.file_name().to_str().unwrap()) {
+            if let Some(cap) = re.captures(file.unwrap().file_name().to_str().unwrap()) {
 
                 let name = cap.name("name").unwrap().as_str();
                 let frame = cap.name("frame").unwrap().as_str();
@@ -107,15 +77,6 @@ fn seek_directory(path: &Path) {
             }
         }
     }
-
-    println!("Streaks: {}", streaks.len());
-    for streak in &streaks {
-        println!("{}", streak);
-    }
-
-//    for iter in map.iter() {
-//        let (key, value) = &iter;
-//    }
 }
 
 

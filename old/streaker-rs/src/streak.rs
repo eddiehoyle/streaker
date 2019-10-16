@@ -138,21 +138,49 @@ impl Streak {
         _padding.push_str((0..self.padding() / 4).map(|_| "#").collect::<String>().as_str());
         _padding.push_str((0..self.padding() % 4).map(|_| "@").collect::<String>().as_str());
 
-        // TODO: Seeing wrong value for index after sorting
-
+        // TODO: How do I avoid a full copy here just to sort?
         let mut sorted_frames = self.frames.clone();
         sorted_frames.sort();
-        println!("{:?}", sorted_frames);
-//        let sorted_frames : IndexSet<u32> = self.frames.clone().sorted_by(|a, b| {Ordering::Less}).collect();
 
         if sorted_frames.is_empty() {
             return format!("{}", _padding);
         } else if sorted_frames.len() == 1 {
             return format!("{}{}", _padding, sorted_frames.get_index(0).unwrap());
         } else {
-            return format!("{}{}-{}", _padding,
-                           sorted_frames.get_index(0).unwrap(),
-                           sorted_frames.get_index(sorted_frames.len() - 1).unwrap());
+
+//            let first = sorted_frames.get_index(0).unwrap();
+//            let last = sorted_frames.get_index( sorted_frames.len() - 1).unwrap();
+//            let distance = last - first;
+
+            let mut contiguous = true;
+            let mut iter = sorted_frames.iter();
+            let mut last_frame = iter.next().unwrap();
+            let mut this_frame = iter.next().unwrap();
+            let mut skip = this_frame - last_frame;
+            while let Some(this_frame) = iter.next() {
+
+                let last_skip = skip.clone();
+                skip = this_frame - last_frame;
+                if last_skip != skip {
+                    contiguous = false;
+                    break;
+                }
+                last_frame = this_frame;
+            }
+            if contiguous && skip > 1 {
+                return format!("{}{}-{}", _padding,
+                               sorted_frames.get_index(0).unwrap(),
+                               sorted_frames.get_index(sorted_frames.len() - 1).unwrap() + 1);
+            } else {
+                let mut frames : String = String::new();
+                for index in 0..sorted_frames.len() {
+                    frames.push_str(sorted_frames.get_index(index).unwrap().to_string().as_str());
+                    if index != sorted_frames.len() {
+                        frames += ",";
+                    }
+                }
+                return format!("{}{}", _padding, frames);
+            }
         }
     }
 
