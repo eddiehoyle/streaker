@@ -9,3 +9,4 @@ mod tests {
 mod padding;
 mod frames;
 mod streak;
+mod traits;
